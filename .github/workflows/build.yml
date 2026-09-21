@@ -14,34 +14,24 @@ jobs:
       - name: Extract ZIP
         run: |
           mkdir project
-          ZIP=$(find . -type f -name "*.zip" | head -1)
-          echo "Found: $ZIP"
+          ZIP=$(find . -maxdepth 1 -type f -name "*.zip" | head -1)
           unzip -o "$ZIP" -d project
 
-      - name: Find Gradle
-        run: |
-          echo "Searching for Gradle..."
-          find project -name "gradlew" -type f
-          find project -name "settings.gradle*" -type f
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build APK
-        run: |
-          GRADLEW=$(find project -name "gradlew" -type f | head -1)
-
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: This ZIP does not contain a Gradle Android project."
-            echo "Files inside ZIP:"
-            find project -maxdepth 4 -type f
-            exit 1
-          fi
-
-          DIR=$(dirname "$GRADLEW")
-          chmod +x "$GRADLEW"
-          cd "$DIR"
-          "$GRADLEW" assembleDebug
+        working-directory: project
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: test-popup-apk
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: project/app/build/outputs/apk/debug/*.apk
