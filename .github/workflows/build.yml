@@ -8,28 +8,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Find ZIP
+      - name: Find ZIP file
         run: |
           ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
-          echo "ZIP_FILE=$ZIP_FILE"
-          test -n "$ZIP_FILE"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: No ZIP file found."
+            exit 1
+          fi
+          echo "Using ZIP: $ZIP_FILE"
 
-      - name: Extract ZIP
+      - name: Extract project
         run: |
           mkdir -p project
           ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
           unzip -o "$ZIP_FILE" -d project
 
-      - name: Setup Java
+      - name: Show project files
+        run: |
+          echo "Project contents:"
+          find project -maxdepth 3 -type f | head -100
+
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Build
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
         working-directory: project
         run: |
           chmod +x gradlew
