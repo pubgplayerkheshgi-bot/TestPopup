@@ -1,4 +1,4 @@
-name: Build Test Popup APK
+name: Build APK
 
 on:
   workflow_dispatch:
@@ -8,37 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Find ZIP file
+      - name: Find Android project
         run: |
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: No ZIP file found."
-            exit 1
-          fi
-          echo "Using ZIP: $ZIP_FILE"
-
-      - name: Extract project
-        run: |
-          mkdir -p project
-          ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
-          unzip -o "$ZIP_FILE" -d project
-
-      - name: Locate Gradle project
-        run: |
-          GRADLEW=$(find project -type f -name "gradlew" | head -n 1)
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew was not found."
-            echo "Files extracted:"
-            find project -maxdepth 5 -type f
-            exit 1
-          fi
-
-          PROJECT_DIR=$(dirname "$GRADLEW")
-          echo "Gradle project: $PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          find . -name "build.gradle" -o -name "build.gradle.kts" -o -name "gradlew"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -46,16 +20,19 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build APK
+      - name: Build
         run: |
-          chmod +x "$PROJECT_DIR/gradlew"
-          cd "$PROJECT_DIR"
+          GRADLEW=$(find . -name "gradlew" | head -1)
+          if [ -z "$GRADLEW" ]; then
+            echo "No gradlew found."
+            exit 1
+          fi
+          DIR=$(dirname "$GRADLEW")
+          chmod +x "$GRADLEW"
+          cd "$DIR"
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Get APK
         uses: actions/upload-artifact@v4
         with:
           name: test-popup-apk
