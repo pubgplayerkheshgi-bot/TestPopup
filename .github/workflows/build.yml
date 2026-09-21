@@ -26,10 +26,19 @@ jobs:
           ZIP_FILE=$(find . -maxdepth 1 -type f -name "*.zip" | head -n 1)
           unzip -o "$ZIP_FILE" -d project
 
-      - name: Show project files
+      - name: Locate Gradle project
         run: |
-          echo "Project contents:"
-          find project -maxdepth 3 -type f | head -100
+          GRADLEW=$(find project -type f -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found."
+            echo "Files extracted:"
+            find project -maxdepth 5 -type f
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "Gradle project: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -41,13 +50,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build APK
-        working-directory: project
         run: |
-          chmod +x gradlew
+          chmod +x "$PROJECT_DIR/gradlew"
+          cd "$PROJECT_DIR"
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: test-popup-apk
-          path: project/**/build/outputs/apk/debug/*.apk
+          path: "**/build/outputs/apk/debug/*.apk"
