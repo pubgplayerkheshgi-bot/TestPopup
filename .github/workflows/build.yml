@@ -13,8 +13,7 @@ jobs:
 
       - name: Extract project ZIP
         run: |
-          unzip -o com.ikramkheshgi.testpopup-project.zip -d project
-
+          unzip -o com.ikramkheshgi.testpopup-project-1.zip
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
